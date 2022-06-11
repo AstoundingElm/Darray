@@ -1,16 +1,15 @@
 #include "darray.h"
 #include  <stdio.h>
-#include <string.h>
-#include "surface.h"
-typedef char b8;
+#include "vulkanSurface.h"
+#include "vulkanTypes.h"
+#include "strings.h"
+#include "physicalDevice.h"
+
 
 void platform_get_required_extension_names(const char ***names_darray) {
     darray_push(*names_darray, &"VK_KHR_xcb_surface");  // VK_KHR_xlib_surface?
 }
 
-b8 strings_equal(const char* str0, const char* str1) {
-    return strcmp(str0, str1) == 0;
-}
 
  
 
@@ -21,6 +20,8 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vk_debug_callback(
     VkDebugUtilsMessageTypeFlagsEXT message_types,
     const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
     void* user_data);
+
+
 
 void vulkanRendererBackend(){
 context.allocator = 0;
@@ -122,16 +123,18 @@ context.allocator = 0;
    
 #endif
 
-if(!platform_create_vulkan_surface(&context)){
-debugBreak();
-
- if (!vulkan_device_create(&context)) {
-        KERROR("Failed to create device!");
-        return FALSE;
-    }
+platform_create_vulkan_surface(&context);
 
 
-};
+ if(!select_physical_device(&context)){
+        printf("Failed to create device!");
+ }
+        
+    
+    
+
+
+
 printf("successfullycreatedvulkan surface");
 
   
@@ -152,16 +155,16 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vk_debug_callback(
     switch (message_severity) {
         default:
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-           // KERROR(callback_data->pMessage);
+           // printf(callback_data->pMessage);
             break;
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
            // KWARN(callback_data->pMessage);
             break;
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-          //  KINFO(callback_data->pMessage);
+          //  printf(callback_data->pMessage);
             break;
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-            //KTRACE(callback_data->pMessage);
+            //printf(callback_data->pMessage);
             break;
     }
     return VK_FALSE;

@@ -1,25 +1,11 @@
-#include "defines.h"
 
-typedef struct {
-    b8 graphics;
-    b8 present;
-    b8 compute;
-    b8 transfer;
-    // darray
-    const char** device_extension_names;
-    b8 sampler_anisotropy;
-    b8 discrete_gpu;
-} vulkan_physical_device_requirements;
+#include "vulkanTypes.h"
+#include "physicalDevice.h"
+#include "darray.h"
+#include "strings.h"
 
-typedef struct vulkan_physical_device_queue_family_info {
-    u32 graphics_family_index;
-    u32 present_family_index;
-    u32 compute_family_index;
-    u32 transfer_family_index;
-} vulkan_physical_device_queue_family_info;
-
-b8 select_physical_device(vulkan_context* context);
-b8 physical_device_meets_requirements(
+ b8 select_physical_device(vulkan_context* context);
+ b8 physical_device_meets_requirements(
     VkPhysicalDevice device,
     VkSurfaceKHR surface,
     const VkPhysicalDeviceProperties* properties,
@@ -28,18 +14,8 @@ b8 physical_device_meets_requirements(
     vulkan_physical_device_queue_family_info* out_queue_family_info,
     vulkan_swapchain_support_info* out_swapchain_support);
 
-b8 vulkan_device_create(vulkan_context* context) {
-    if (!select_physical_device(context)) {
-        return FALSE;
-    }
 
-    return TRUE;
-}
-
-void vulkan_device_destroy(vulkan_context* context) {
-}
-
-void vulkan_device_query_swapchain_support(
+ void vulkan_device_query_swapchain_support(
     VkPhysicalDevice physical_device,
     VkSurfaceKHR surface,
     vulkan_swapchain_support_info* out_support_info) {
@@ -89,7 +65,7 @@ b8 select_physical_device(vulkan_context* context) {
     u32 physical_device_count = 0;
     VK_CHECK(vkEnumeratePhysicalDevices(context->instance, &physical_device_count, 0));
     if (physical_device_count == 0) {
-        KFATAL("No devices which support Vulkan were found.");
+        printf("No devices which support Vulkan were found.");
         return FALSE;
     }
 
@@ -119,7 +95,7 @@ b8 select_physical_device(vulkan_context* context) {
         darray_push(requirements.device_extension_names, &VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
         vulkan_physical_device_queue_family_info queue_info = {};
-        b8 result = physical_device_meets_requirements(
+        physical_device_meets_requirements(
             physical_devices[i],
             context->surface,
             &properties,
@@ -128,36 +104,36 @@ b8 select_physical_device(vulkan_context* context) {
             &queue_info,
             &context->device.swapchain_support);
 
-        if (result) {
-            KINFO("Selected device: '%s'.", properties.deviceName);
+        
+            printf("Selected device: '%s'.", properties.deviceName);
             // GPU type, etc.
             switch (properties.deviceType) {
                 default:
                 case VK_PHYSICAL_DEVICE_TYPE_OTHER:
-                    KINFO("GPU type is Unknown.");
+                    printf("GPU type is Unknown.");
                     break;
                 case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
-                    KINFO("GPU type is Integrated.");
+                    printf("GPU type is Integrated.");
                     break;
                 case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
-                    KINFO("GPU type is Descrete.");
+                    printf("GPU type is Descrete.");
                     break;
                 case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
-                    KINFO("GPU type is Virtual.");
+                    printf("GPU type is Virtual.");
                     break;
                 case VK_PHYSICAL_DEVICE_TYPE_CPU:
-                    KINFO("GPU type is CPU.");
+                    printf("GPU type is CPU.");
                     break;
             }
 
-            KINFO(
+            printf(
                 "GPU Driver version: %d.%d.%d",
                 VK_VERSION_MAJOR(properties.driverVersion),
                 VK_VERSION_MINOR(properties.driverVersion),
                 VK_VERSION_PATCH(properties.driverVersion));
 
             // Vulkan API version.
-            KINFO(
+            printf(
                 "Vulkan API version: %d.%d.%d",
                 VK_VERSION_MAJOR(properties.apiVersion),
                 VK_VERSION_MINOR(properties.apiVersion),
@@ -167,9 +143,9 @@ b8 select_physical_device(vulkan_context* context) {
             for (u32 j = 0; j < memory.memoryHeapCount; ++j) {
                 f32 memory_size_gib = (((f32)memory.memoryHeaps[j].size) / 1024.0f / 1024.0f / 1024.0f);
                 if (memory.memoryHeaps[j].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
-                    KINFO("Local GPU memory: %.2f GiB", memory_size_gib);
+                    printf("Local GPU memory: %.2f GiB", memory_size_gib);
                 } else {
-                    KINFO("Shared System memory: %.2f GiB", memory_size_gib);
+                    printf("Shared System memory: %.2f GiB", memory_size_gib);
                 }
             }
 
@@ -184,16 +160,16 @@ b8 select_physical_device(vulkan_context* context) {
             context->device.features = features;
             context->device.memory = memory;
             break;
-        }
+        
     }
 
     // Ensure a device was selected
     if (!context->device.physical_device) {
-        KERROR("No physical devices were found which meet the requirements.");
+        printf("No physical devices were found which meet the requirements.");
         return FALSE;
     }
 
-    KINFO("Physical device selected.");
+    printf("Physical device selected.");
     return TRUE;
 }
 
@@ -214,7 +190,7 @@ b8 physical_device_meets_requirements(
     // Discrete GPU?
     if (requirements->discrete_gpu) {
         if (properties->deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
-            KINFO("Device is not a discrete GPU, and one is required. Skipping.");
+            printf("Device is not a discrete GPU, and one is required. Skipping.");
             return FALSE;
         }
     }
@@ -225,7 +201,7 @@ b8 physical_device_meets_requirements(
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queue_families);
 
     // Look at each queue and see what queues it supports
-    KINFO("Graphics | Present | Compute | Transfer | Name");
+    printf("Graphics | Present | Compute | Transfer | Name");
     u8 min_transfer_score = 255;
     for (u32 i = 0; i < queue_family_count; ++i) {
         u8 current_transfer_score = 0;
@@ -261,7 +237,7 @@ b8 physical_device_meets_requirements(
     }
 
     // Print out some info about the device
-    KINFO("       %d |       %d |       %d |        %d | %s",
+    printf("       %d |       %d |       %d |        %d | %s",
           out_queue_info->graphics_family_index != -1,
           out_queue_info->present_family_index != -1,
           out_queue_info->compute_family_index != -1,
@@ -273,11 +249,11 @@ b8 physical_device_meets_requirements(
         (!requirements->present || (requirements->present && out_queue_info->present_family_index != -1)) &&
         (!requirements->compute || (requirements->compute && out_queue_info->compute_family_index != -1)) &&
         (!requirements->transfer || (requirements->transfer && out_queue_info->transfer_family_index != -1))) {
-        KINFO("Device meets queue requirements.");
-        KTRACE("Graphics Family Index: %i", out_queue_info->graphics_family_index);
-        KTRACE("Present Family Index:  %i", out_queue_info->present_family_index);
-        KTRACE("Transfer Family Index: %i", out_queue_info->transfer_family_index);
-        KTRACE("Compute Family Index:  %i", out_queue_info->compute_family_index);
+        printf("Device meets queue requirements.");
+        printf("Graphics Family Index: %i", out_queue_info->graphics_family_index);
+        printf("Present Family Index:  %i", out_queue_info->present_family_index);
+        printf("Transfer Family Index: %i", out_queue_info->transfer_family_index);
+        printf("Compute Family Index:  %i", out_queue_info->compute_family_index);
 
         // Query swapchain support.
         vulkan_device_query_swapchain_support(
@@ -292,7 +268,7 @@ b8 physical_device_meets_requirements(
             if (out_swapchain_support->present_modes) {
                 kfree(out_swapchain_support->present_modes, sizeof(VkPresentModeKHR) * out_swapchain_support->present_mode_count, MEMORY_TAG_RENDERER);
             }
-            KINFO("Required swapchain support not present, skipping device.");
+            printf("Required swapchain support not present, skipping device.");
             return FALSE;
         }
 
@@ -324,7 +300,7 @@ b8 physical_device_meets_requirements(
                     }
 
                     if (!found) {
-                        KINFO("Required extension not found: '%s', skipping device.", requirements->device_extension_names[i]);
+                        printf("Required extension not found: '%s', skipping device.", requirements->device_extension_names[i]);
                         kfree(available_extensions, sizeof(VkExtensionProperties) * available_extension_count, MEMORY_TAG_RENDERER);
                         return FALSE;
                     }
@@ -335,7 +311,7 @@ b8 physical_device_meets_requirements(
 
         // Sampler anisotropy
         if (requirements->sampler_anisotropy && !features->samplerAnisotropy) {
-            KINFO("Device does not support samplerAnisotropy, skipping.");
+            printf("Device does not support samplerAnisotropy, skipping.");
             return FALSE;
         }
 
