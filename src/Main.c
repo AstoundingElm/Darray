@@ -1,7 +1,7 @@
 #include "darray.h"
 #include  <stdio.h>
 #include <string.h>
-
+#include "surface.h"
 typedef char b8;
 
 void platform_get_required_extension_names(const char ***names_darray) {
@@ -12,15 +12,7 @@ b8 strings_equal(const char* str0, const char* str1) {
     return strcmp(str0, str1) == 0;
 }
 
-typedef char b8;
-typedef struct vulkan_context {
-    VkInstance instance;
-    VkAllocationCallbacks* allocator;
-
-#if defined(_DEBUG)
-    VkDebugUtilsMessengerEXT debug_messenger;
-#endif
-} vulkan_context;
+ 
 
 static vulkan_context context;
 
@@ -129,6 +121,18 @@ context.allocator = 0;
 
    
 #endif
+
+if(!platform_create_vulkan_surface(&context)){
+debugBreak();
+
+ if (!vulkan_device_create(&context)) {
+        KERROR("Failed to create device!");
+        return FALSE;
+    }
+
+
+};
+printf("successfullycreatedvulkan surface");
 
   
 }

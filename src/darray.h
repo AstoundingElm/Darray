@@ -1,14 +1,12 @@
 #pragma once
-#define TRUE 1
-#define FALSE 0
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include <vulkan/vulkan.h>
-#define _DEBUG 1
+#include "defines.h"
+
+
 #define debugBreak() __builtin_trap()
-
-
 
  #define KASSERT(expr)                                                \
     {                                                                \
@@ -23,6 +21,10 @@
     {                                \
         KASSERT(expr == VK_SUCCESS); \
     }
+
+
+
+
 
    
 /*
